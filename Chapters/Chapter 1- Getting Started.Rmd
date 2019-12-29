@@ -1,0 +1,75 @@
+---
+title: "Chapter 1- Getting Started"
+output: html_notebook
+---
+
+### [1.1 What can be Forecast?](https://otexts.com/fpp3/what-can-be-forecast.html) 
+
+Insofar as statistics is the practice of quantifying uncertainty, forecasting would fall under this domain as well because the future is uncertain but not entirely random. 
+
+Factors that affect the accuracy of a forecast include how well the phenomena being forecast, *y*, is understood, how much data is available and *simultaneity*, that is, whether our forecast effects *y*.
+
+Before getting into the weeds, it's important to ask *a priori*- does it make sense to forecast a phenomenon? After all, we may just be overfitting past events. A good forecasting model "captures the way that the environment is changing". 
+
+There are many ways to make a forecast, including [neural nets](https://www.kaggle.com/c/ashrae-energy-prediction), [Bayesian methods](https://mc-stan.org/docs/2_21/stan-users-guide/time-series-chapter.html), [Facebook's Prophet](https://facebook.github.io/prophet/), [simultaneous equations](https://bookdown.org/ccolonescu/RPoE4/simultaneous-equations-models.html).
+
+### [1.2 Forecasting, planning and goals](https://otexts.com/fpp3/planning.html)
+
+*Captain America: Stark, we need a plan of attack!  
+Iron Man: I have a plan- attack.*
+
+I differ with the author on defining the section's titular terms.
+
+**Goals** are what we want to happen. **Plans** are how we achieve our goal. **Forecasting** is the model that connects them. 
+
+Getting to the top of a mountain is a goal. The plan includes our materials, physical preparation and intended route. Forecasting is our model that connects our plans and goals: given our plan, we will get to the top of the mountain (in X days, or with probability *p*). In this sense, we can tinker with our forecast, such as by adjusting our plan (as material inputs, etc.) to see how this will effect our goal.
+
+Forecasts can be have different durations: short-term, medium-term or long-term. "We may be forecasting by years or minutes."
+
+Forecasting happens in organizations and there needs to be a process (or it will likely fail). Many of these challenges are similar to statistical modeling in other domains. These include goal-setting, identifying problems and difficulties, model selection, data collection and iterative, agile updating.
+
+### [1.3 Determining what to forecast](https://otexts.com/fpp3/determining-what-to-forecast.html)
+
+*What is the level of the problem?* There are levels across multiple dimensions. Say we are McDonalds selling hamburgers. 
+
+Are we predicting sales for each kind of burger (Big Mac, Quarter Pounder, Double Quarter Pounder, Double Quarter Pounder with Cheese), or for all burgers together? There will be more variance at finer levels of detail, and if we use the same inputs, does it really matter? 
+
+Furthermore, are we predicting at the store level or region? What is our time horizon? How frequently are forecasts required? How will the forecasts be used? How will the data be collected?
+
+### [1.4 Forecasting data and methods](https://otexts.com/fpp3/data-methods.html)
+
+Forecasting can be qualitative or quantitative. Here we're mostly concerned with quantitative. Our data can be time series (collected at regular intervals) or cross-sectional (collected at a single point).
+
+Time series data can be collected at different rates (daily, monthly, quarterly, etc.) "Irregularly spaced time series can also occur, but are beyond the scope of this book."
+
+A time series forecast projects out into the future with some form of a confidence interval. 
+
+Simple time series use data only on the variable of interest, extrapolating on *trends* and *cycles* (more on these later). We can call these *time series methods.*
+
+*TS models* (as apposed to methods) include predictive factors, *x*. Past predictions can also be included as predictors in ts models. Such models are called... "mixed models... dynamic regression models, panel data models, longitudinal models, transfer function models, and linear system models (assuming that [the function] is linear)."
+
+Which model do you choose? I don't know... whichever one predicts the best? Remember no model reflects reality. Accuracy, internal and external validity, available data, goals, data quality, etc. all matter. 
+
+### [1.5 Some Case Studies](https://otexts.com/fpp3/case-studies.html)
+
+A collection of case studies in business sales in tableware, pharma, vehicles, and also air travel (to predict air traffic).
+
+### [1.6 The basic steps in a forecasting task](https://otexts.com/fpp3/basic-steps.html)
+
+*Step 1:* Problem Definition. The hardest part.  
+*Step 2:* Gathering information. Gather data and talk to experts. Be careful. Experts may be biased. Data expires when policies change.  
+*Step 3:* Exploratory analysis. Graph the data and look for patters. 
+*Step 4:* Fit models. That's models with an "s". What are the assumptions of each?
+
+"We will discuss regression models (Chapter 6), exponential smoothing methods (Chapter 8), Box-Jenkins ARIMA models (Chapter 9), Dynamic regression models (Chapter 10), Hierarchical forecasting (Chapter ??), and several advanced methods including neural networks and vector autoregression..."
+
+*Step 5:* Evaluate performance. "The performance of the model can only be properly evaluated after the data for the forecast period have become available."
+
+### [1.7 The Statistical forecasting perspective](https://otexts.com/fpp3/perspective.html)
+
+Consider that we have ***forecast distributions.*** Our forecasts are really means or modes on a statistical distribution. For time series methods, these can be abbreviated as $\hat{y}_{t|t-1}$ meaning the forecast of $\hat{y}$ accounting for all previous observations. Further into the future, we can use $\hat{y}_{T+h|T}$, that is, an *h*-step forecast taking into account all observations up to time T. 
+
+### [1.8 Exercises](https://otexts.com/fpp3/intro-exercises.html)
+
+These exercises aren't data related, so I'm skipping them. Good night, folks!
+

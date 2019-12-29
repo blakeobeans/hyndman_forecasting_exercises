@@ -10,3 +10,22 @@ library(fpp3)
 ### [9.1 Stationarity and Differencing](https://otexts.com/fpp3/stationarity.html)
 
 A stationary time series is one whose properties do not depend on the time at which the series is observed. More precisely, if $y_t$ is a stationary time series, then for all *s* the distribution of ($y_t$,...,$y_{t+s}$) does not depend on *t*.
+
+This means that a time series can still have cyclical patterns. It's just that those patterns aren't a function of *t*.
+
+```{r}
+#google_2015 created in section 3.2
+google_stock <- gafa_stock %>%
+  filter(Symbol == "GOOG") %>%
+  mutate(day = row_number()) %>%
+  update_tsibble(index = day, regular = TRUE)
+
+google_2015 <- google_stock %>% filter(year(Date) == 2015)
+```
+
+
+```{r}
+google_2015 <- google_2015 %>% mutate(diff_close = difference(Close)) 
+ljung_box(google_2015$diff_close, lag = 10)
+```
+

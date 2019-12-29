@@ -229,18 +229,45 @@ summary {
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShmcHAzKVxuYGBgIn0= -->
-<pre class="r"><code>library(fpp3)</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShmcHAyKVxuXG5gYGAifQ== -->
+<pre class="r"><code>library(fpp2)
+</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoicGFja2FnZSDjpLzjuLFmcHAy46S847iyIHdhcyBidWlsdCB1bmRlciBSIHZlcnNpb24gMy41LjNMb2FkaW5nIHJlcXVpcmVkIHBhY2thZ2U6IGZtYVxucGFja2FnZSDjpLzjuLFmbWHjpLzjuLIgd2FzIGJ1aWx0IHVuZGVyIFIgdmVyc2lvbiAzLjUuM0xvYWRpbmcgcmVxdWlyZWQgcGFja2FnZTogZXhwc21vb3RoXG5wYWNrYWdlIOOkvOO4sWV4cHNtb290aOOkvOO4siB3YXMgYnVpbHQgdW5kZXIgUiB2ZXJzaW9uIDMuNS4zXG4ifQ== -->
+<pre><code>package 㤼㸱fpp2㤼㸲 was built under R version 3.5.3Loading required package: fma
+package 㤼㸱fma㤼㸲 was built under R version 3.5.3Loading required package: expsmooth
+package 㤼㸱expsmooth㤼㸲 was built under R version 3.5.3</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <div id="stationarity-and-differencing" class="section level3">
 <h3><a href="https://otexts.com/fpp3/stationarity.html">9.1 Stationarity and Differencing</a></h3>
 <p>A stationary time series is one whose properties do not depend on the time at which the series is observed. More precisely, if <span class="math inline">\(y_t\)</span> is a stationary time series, then for all <em>s</em> the distribution of (<span class="math inline">\(y_t\)</span>,…,<span class="math inline">\(y_{t+s}\)</span>) does not depend on <em>t</em>.</p>
+<p>This means that a time series can still have cyclical patterns. It’s just that those patterns aren’t a function of <em>t</em>.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI2dvb2dsZV8yMDE1IGNyZWF0ZWQgaW4gc2VjdGlvbiAzLjJcbmdvb2dsZV9zdG9jayA8LSBnYWZhX3N0b2NrICU+JVxuICBmaWx0ZXIoU3ltYm9sID09IFwiR09PR1wiKSAlPiVcbiAgbXV0YXRlKGRheSA9IHJvd19udW1iZXIoKSkgJT4lXG4gIHVwZGF0ZV90c2liYmxlKGluZGV4ID0gZGF5LCByZWd1bGFyID0gVFJVRSlcbmdvb2dsZV8yMDE1IDwtIGdvb2dsZV9zdG9jayAlPiUgZmlsdGVyKHllYXIoRGF0ZSkgPT0gMjAxNSlcbmBgYCJ9 -->
+<pre class="r"><code>#google_2015 created in section 3.2
+google_stock &lt;- gafa_stock %&gt;%
+  filter(Symbol == &quot;GOOG&quot;) %&gt;%
+  mutate(day = row_number()) %&gt;%
+  update_tsibble(index = day, regular = TRUE)
+google_2015 &lt;- google_stock %&gt;% filter(year(Date) == 2015)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZ29vZ2xlXzIwMTUgPC0gZ29vZ2xlXzIwMTUgJT4lIG11dGF0ZShkaWZmX2Nsb3NlID0gZGlmZmVyZW5jZShDbG9zZSkpIFxubGp1bmdfYm94KGdvb2dsZV8yMDE1JGRpZmZfY2xvc2UsIGxhZyA9IDEwKVxuYGBgIn0= -->
+<pre class="r"><code>google_2015 &lt;- google_2015 %&gt;% mutate(diff_close = difference(Close)) 
+ljung_box(google_2015$diff_close, lag = 10)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIkNoYXB0ZXIgOS0gQVJJTUEiDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KDQpgYGB7cn0NCmxpYnJhcnkoZnBwMykNCmBgYA0KDQojIyMgWzkuMSBTdGF0aW9uYXJpdHkgYW5kIERpZmZlcmVuY2luZ10oaHR0cHM6Ly9vdGV4dHMuY29tL2ZwcDMvc3RhdGlvbmFyaXR5Lmh0bWwpDQoNCkEgc3RhdGlvbmFyeSB0aW1lIHNlcmllcyBpcyBvbmUgd2hvc2UgcHJvcGVydGllcyBkbyBub3QgZGVwZW5kIG9uIHRoZSB0aW1lIGF0IHdoaWNoIHRoZSBzZXJpZXMgaXMgb2JzZXJ2ZWQuIE1vcmUgcHJlY2lzZWx5LCBpZiAkeV90JCBpcyBhIHN0YXRpb25hcnkgdGltZSBzZXJpZXMsIHRoZW4gZm9yIGFsbCAqcyogdGhlIGRpc3RyaWJ1dGlvbiBvZiAoJHlfdCQsLi4uLCR5X3t0K3N9JCkgZG9lcyBub3QgZGVwZW5kIG9uICp0Ki4=</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkNoYXB0ZXIgOS0gQVJJTUEiDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KDQpgYGB7cn0NCmxpYnJhcnkoZnBwMykNCmBgYA0KDQojIyMgWzkuMSBTdGF0aW9uYXJpdHkgYW5kIERpZmZlcmVuY2luZ10oaHR0cHM6Ly9vdGV4dHMuY29tL2ZwcDMvc3RhdGlvbmFyaXR5Lmh0bWwpDQoNCkEgc3RhdGlvbmFyeSB0aW1lIHNlcmllcyBpcyBvbmUgd2hvc2UgcHJvcGVydGllcyBkbyBub3QgZGVwZW5kIG9uIHRoZSB0aW1lIGF0IHdoaWNoIHRoZSBzZXJpZXMgaXMgb2JzZXJ2ZWQuIE1vcmUgcHJlY2lzZWx5LCBpZiAkeV90JCBpcyBhIHN0YXRpb25hcnkgdGltZSBzZXJpZXMsIHRoZW4gZm9yIGFsbCAqcyogdGhlIGRpc3RyaWJ1dGlvbiBvZiAoJHlfdCQsLi4uLCR5X3t0K3N9JCkgZG9lcyBub3QgZGVwZW5kIG9uICp0Ki4NCg0KVGhpcyBtZWFucyB0aGF0IGEgdGltZSBzZXJpZXMgY2FuIHN0aWxsIGhhdmUgY3ljbGljYWwgcGF0dGVybnMuIEl0J3MganVzdCB0aGF0IHRob3NlIHBhdHRlcm5zIGFyZW4ndCBhIGZ1bmN0aW9uIG9mICp0Ki4NCg0KYGBge3J9DQojZ29vZ2xlXzIwMTUgY3JlYXRlZCBpbiBzZWN0aW9uIDMuMg0KZ29vZ2xlX3N0b2NrIDwtIGdhZmFfc3RvY2sgJT4lDQogIGZpbHRlcihTeW1ib2wgPT0gIkdPT0ciKSAlPiUNCiAgbXV0YXRlKGRheSA9IHJvd19udW1iZXIoKSkgJT4lDQogIHVwZGF0ZV90c2liYmxlKGluZGV4ID0gZGF5LCByZWd1bGFyID0gVFJVRSkNCg0KZ29vZ2xlXzIwMTUgPC0gZ29vZ2xlX3N0b2NrICU+JSBmaWx0ZXIoeWVhcihEYXRlKSA9PSAyMDE1KQ0KYGBgDQoNCg0KYGBge3J9DQpnb29nbGVfMjAxNSA8LSBnb29nbGVfMjAxNSAlPiUgbXV0YXRlKGRpZmZfY2xvc2UgPSBkaWZmZXJlbmNlKENsb3NlKSkgDQpsanVuZ19ib3goZ29vZ2xlXzIwMTUkZGlmZl9jbG9zZSwgbGFnID0gMTApDQpgYGANCg0K</div>
 
 
 
