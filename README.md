@@ -1,5 +1,5 @@
 # hyndman_forecasting_exercises
-A collection of workbooks containing code for Hyndman and Athanasopoulos, Forecasting: Principles and Practice
+A collection of workbooks containing code for Hyndman and Athanasopoulos, [Forecasting: Principles and Practice](https://otexts.com/fpp3/)
 
 Obviously, this is classified as "self-study" and I take no credit for any of this. Credit for all of the examples and goes to all of the author.
 
