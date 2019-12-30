@@ -1,0 +1,109 @@
+---
+title: "Chapter 2- Time Series Graphics"
+output: html_notebook
+---
+
+```{r}
+library(fpp3)
+```
+
+First, set up your data. Then, plot your graph.
+
+### [2.1 Tsibble Objects](https://otexts.com/fpp3/tsibble-objects.html)
+
+This section contains everything you need to know to set up your data as a time series object.
+
+At a minimum, you need your *y* observations and an index representing time. 
+
+Regardless of the package (zoo, xts, etc.) most time series data needs to be explicitly defined as such. 
+
+The ffp package uses *tsibbles*, a play on the tidyverses [*tibble*](https://tibble.tidyverse.org/).
+
+```{r}
+y <- tsibble(Year = 2015:2019, Observation = c(123,39,78,52,110), index = Year)
+str(y)
+```
+
+You can see that the tsibble() function stores the data as a time series object ('tbl_ts'), is indexed by year (twice, why?) and is on a yearly interval. 
+
+```{r}
+z <- tibble(Month = seq(as.Date("2019-01-01"), as.Date("2019-05-01"), by = "1 month"), 
+            Observation = c(50, 23, 34, 30, 25)) 
+str(z)
+#yes, you can sequence months in R, so cool
+z <- z %>%
+  mutate(Month = yearmonth(Month)) %>%
+  as_tsibble(index = Month)
+str(z)
+```
+
+Getting your time series indexed is the initial up front cost in working with time series data, but it makes analysis workflows much faster. It requires specific knowledge of working with dates and times in R, which is a subject in and of itself. Study up on base R's date functions, POSIXct objects, or just be a lazy bastard and use [lubridate](https://lubridate.tidyverse.org/).
+
+```{r}
+str(olympic_running)
+```
+
+We can see that the interval on the olympic_running dataset is every 4 years. After the initial list of variables we see that the data is *keyed* with 14 observations of 3 variables, and only **length** and **sex** are listed. So it's pretty clear that we have our time index, two keys and our response, Time. In other words, the data is laid out in a stacked fashion. Two sexes * seven lengths is 14 observations per year. 312 observations divided by 14 annual observations is 22.285... wait a minute.
+
+```{r}
+table(olympic_running$Year)
+```
+
+We have different frequencies based on the historical nature of our data.
+
+```{r}
+str(PBS)
+```
+
+We can see that our data is indexed by yearmonth, meaning we have monthly data over a number of years. Dropping down to the keys, we see that we have 336 months of observations or about 28 years worth (assuming no missing data).
+
+```{r}
+table(PBS$Month)
+```
+
+We can see that some months have more observations than others. 
+
+```{r}
+PBS %>%
+  filter(ATC2=="A10") %>%
+  select(Month, Concession, Type, Cost)
+```
+
+We can perform other dplyr operations on this data, including summarise() and mutate(). The author wants us to save the following subset:
+
+```{r}
+PBS %>%
+  filter(ATC2=="A10") %>%
+  select(Month, Concession, Type, Cost) %>%
+  summarise(TotalC = sum(Cost)) %>%
+  mutate(Cost = TotalC/1e6) -> a10
+```
+
+The takeaways here are that we want our data to be organized into tsibbles, we want to specify our indexes and keys. Make sure you know the interval of the data.
+
+```{r}
+prison <- readr::read_csv("https://OTexts.com/fpp3/extrafiles/prison_population.csv")
+str(prison)
+table(prison$date) #check interval- data is quarterly
+prison <- prison %>%
+  mutate(quarter = yearquarter(date)) %>%
+  as_tsibble(key = c(state, gender, legal, indigenous), index = quarter)
+str(prison)
+```
+
+The *periodicity* of the data refers to the number of observations in each cycle. For example, a quarterly cycle has 4 periods. While this might be automatically detected, you should become familiar with the numbers (how many minutes in a year?). "More complicated (and unusual) seasonal patterns can be specified using the period() function in the lubridate package."
+
+### [2.2 Time Plots](https://otexts.com/fpp3/time-plots.html)
+
+Start with a time plot
+
+```{r}
+melsyd_economy <- ansett %>%
+  filter(Airports == "MEL-SYD", Class=="Economy")
+str(melsyd_economy) #number of passengers flying out of economy from Melbourne to Sydney per week
+melsyd_economy %>%
+  autoplot(Passengers) +
+    labs(title = "Ansett economy class passengers", subtitle = "Melbourne-Sydney") +
+    xlab("Year")
+```
+
