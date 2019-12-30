@@ -3,7 +3,7 @@ title: "Chapter 2- Time Series Graphics"
 output: html_notebook
 ---
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 library(fpp3)
 ```
 
@@ -91,11 +91,11 @@ prison <- prison %>%
 str(prison)
 ```
 
-The *periodicity* of the data refers to the number of observations in each cycle. For example, a quarterly cycle has 4 periods. While this might be automatically detected, you should become familiar with the numbers (how many minutes in a year?). "More complicated (and unusual) seasonal patterns can be specified using the period() function in the lubridate package."
+The *periodicity* of the data refers to the number of observations in each cycle. For example, a quarterly cycle has 4 periods. While this might be automatically detected, you should become familiar with the numbers (how many minutes in a year?). "More complicated (and unusual) seasonal patterns can be specified using the [period() function in the lubridate package](https://rawgit.com/rstudio/cheatsheets/master/lubridate.pdf)."
 
 ### [2.2 Time Plots](https://otexts.com/fpp3/time-plots.html)
 
-Start with a time plot
+Once you've got your tsibble, start with a time plot. Autoplot works.
 
 ```{r}
 melsyd_economy <- ansett %>%
@@ -106,4 +106,138 @@ melsyd_economy %>%
     labs(title = "Ansett economy class passengers", subtitle = "Melbourne-Sydney") +
     xlab("Year")
 ```
+We can see that this uses ggplot and can be modified accordingly.
 
+We can see various "features" of the plot, including a drop to 0 in the late 80's and a drop in 1992. "Any model will need to take all these features into account in order to effectively forecast the passenger load into the future."
+
+```{r}
+a10 %>% autoplot(Cost) +
+  ggtitle("Antidiabetic drug sales") +
+  ylab("$ million") + xlab("Year")
+```
+
+Using the a10 data (created earlier in the chapter), we can see both the *upward trend* and the seasonal nature of the annual demand. "Any forecasts of this series would need to capture the seasonal pattern, and the fact that the trend is changing slowly."
+
+### [2.3 Time Series Patterns](https://otexts.com/fpp3/tspatterns.html)
+
+*Trends* are long-term changes over many iterations. They provide the big picture. Trends can change. 
+A *Seasonal* pattern "occurs when a time series is affected by seasonal factors such as the time of the year or the day of the week. Seasonality is always of a fixed and known period."
+*Cyclic* patterns are like seasonal patterns except that their changes are not of a fixed frequency, often because the underlying causal mechanisms are complicated. For example, the hiring follows a seasonal pattern but the business cycle is cyclical.
+
+"If the fluctuations are not of a fixed frequency then they are cyclic; if the frequency is unchanging and associated with some aspect of the calendar, then the pattern is seasonal. In general, the average length of cycles is longer than the length of a seasonal pattern, and the magnitudes of cycles tend to be more variable than the magnitudes of seasonal patterns."
+
+If something appears to be a trend, then zoom out. It may turn out to be a cycle after all. 
+
+As always, you need to choose a model that can decompose all three of these features if necessary.
+
+### [2.4 Seasonal Plots](https://otexts.com/fpp3/seasonal-plots.html)
+
+```{r}
+str(a10)
+```
+
+While it may seem untidy at first, one nice feature of the yearmonth key variable format is that it allows you to plot data for different years by month.
+
+```{r}
+a10 %>% gg_season(Cost, labels = "both") +
+  ylab("$ million") +
+  ggtitle("Seasonal plot: antidiabetic drug sales")
+```
+
+"A seasonal plot allows the underlying seasonal pattern to be seen more clearly, and is especially useful in identifying years in which the pattern changes."
+
+### [2.5 Seasonal Subseries Plots](https://otexts.com/fpp3/seasonal-subseries-plots.html)
+
+These are just cool.
+
+```{r}
+a10 %>%
+  gg_subseries(Cost) +
+    ylab("$ million") +
+    xlab("Year") +
+    ggtitle("Seasonal subseries plot: antidiabetic drug sales")
+```
+
+### [2.6 Scatterplots](https://otexts.com/fpp3/scatterplots.html)
+
+When you have two time series that are similar (electricity usage and temperature), you can build a scatterplot. Duh. 
+
+You can calculate the correlation, but remember that correlation measures only linear association. 
+
+### [2.7 Lag Plots](https://otexts.com/fpp3/lag-plots.html)
+
+Let's look at the lag in beer production for 1992.
+
+```{r}
+recent_production <- aus_production %>%
+  filter(year(Quarter) >= 1992)
+recent_production %>% gg_subseries(Beer)
+```
+
+Now lets look at the lag. Note that we're looking at the lag for each year, that is, each point is a different year. 
+
+```{r}
+recent_production <- aus_production %>%
+  filter(year(Quarter) >= 1992)
+str(recent_production)
+table(recent_production$Quarter)
+recent_production %>% gg_lag(Beer, geom="point")
+```
+
+We can see that lag 4 and 8 have strong correlations. Duh, the data is quarterly! We see seasonal variation. At lag 4, beer production is compared to the past year in the same quarter. At lag 8, it's compared to two years ago. 
+
+In lag 2 and 6, we see a strong negative relationship. We're comparing Q4 to Q2 and Q2 to Q4, which essentially compare the highest and the lowest. See ?gg_lag for more info.
+
+### [2.8 Autocorrelation](https://otexts.com/fpp3/autocorrelation.html)
+
+This has always been an intimidating words... "Just as correlation measures the extent of a linear relationship between two variables, autocorrelation measures the linear relationship between lagged values of a time series."
+
+See the formulas on the page, but basically we're looking at the $r_1$ measures the relationship between $y_t$ and $y_{t-1}$, $r_2$ measures the relationship between $y_t$ and $y_{t-2}$, and so forth.
+
+"The autocorrelation coefficients make up the autocorrelation function or ACF."
+
+```{r}
+recent_production %>% ACF(Beer, lag_max = 9)
+```
+
+"We usually plot the ACF to see how the correlations change with the lag k. The plot is sometimes known as a correlogram."
+
+Note that we use autoplot() for ACF data.
+
+```{r}
+recent_production %>% ACF(Beer) %>% autoplot()
+```
+
+The dashed blue lines indicate whether the correlations are significantly different from zero.
+
+Of course, remember that ACF plots measure linear association between lags. Time series data can be transformed: power transforms, differencing, standardization and normalization. Power transforms are covered in chapter 3 and differencing in chapter 9.
+
+```{r}
+a10 %>% ACF(Cost, lag_max = 48) %>% autoplot()
+```
+
+"When data have a trend, the autocorrelations for small lags tend to be large and positive because observations nearby in time are also nearby in size. So the ACF of trended time series tend to have positive values that slowly decrease as the lags increase.
+
+When data are seasonal, the autocorrelations will be larger for the seasonal lags (at multiples of the seasonal frequency) than for other lags.
+
+When data are both trended and seasonal, you see a combination of these effects."
+
+### [2.9 White Noise](https://otexts.com/fpp3/wn.html)
+
+"Time series that show no autocorrelation are called white noise."
+
+```{r}
+set.seed(30)
+y <- tsibble(sample = 1:50, wn = rnorm(50), index = sample)
+y %>% autoplot(wn) + ggtitle("White noise")
+```
+
+```{r}
+y %>% ACF(wn) %>% autoplot()
+```
+
+"For a white noise series, we expect 95% of the spikes in the ACF to lie within ±2/√T where T is the length of the time series."
+
+In this example, T=50 and so the bounds are at ±2/√50=±0.28. All of the autocorrelation coefficients lie within these limits, confirming that the data are white noise.
+
+I think that this can be tested with Durbin-Watson, but that is not covered here.
