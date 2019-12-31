@@ -194,6 +194,10 @@ This has always been an intimidating words... "Just as correlation measures the 
 
 See the formulas on the page, but basically we're looking at the $r_1$ measures the relationship between $y_t$ and $y_{t-1}$, $r_2$ measures the relationship between $y_t$ and $y_{t-2}$, and so forth.
 
+It's important to note that there isn't a single $y_t$ value. The *t* corresponds to a period or interval, like a quarter, but there may be multiple years. We can call these *macroperiods* or *macrointervals*. So in the beer case, we are measuring the autocorrelation between quarters for each macrointerval, which is in years. 
+
+*Autocorrelation therefore measures the lag between periods for across all macrointervals simultaneously.*
+
 "The autocorrelation coefficients make up the autocorrelation function or ACF."
 
 ```{r}

@@ -1,0 +1,142 @@
+---
+title: "Chapter 2- Exercises"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r,message= FALSE, warning=FALSE}
+library(fpp3)
+```
+
+#### 1. Use the help function to explore what the series gafa_stock, PBS, vic_elec and pelt represent.
+
+```{r}
+?gafa_stock #stock prices for big tech from 2014-2018 DAILY (excludes weekends and holidays)
+?PBS #medicare scripts MONTHLY
+?vic_elec #electricy demand HALF-HOURLY
+?pelt #ANNUAL pelt (ie. fur) trades
+```
+
+Use autoplot() to plot some of the series in these data sets.
+
+```{r}
+autoplot(gafa_stock)
+autoplot(PBS) #looks weird... message that plot variable not secified
+autoplot(vic_elec)
+autoplot(pelt)
+```
+
+What is the time interval of each series?
+```{r}
+str(gafa_stock) #daily
+str(PBS) #monthly
+str(vic_elec) #electricy demand HALF-HOURLY
+str(pelt) #ANNUAL pelt (ie. fur) trades
+```
+
+Use filter() to find what days corresponded to the peak closing price for each of the four stocks in gafa_stock.
+
+```{r}
+#didn't follow instructions specifically
+gafa_stock %>% as.data.frame(gafa_stock) %>% 
+              select(Symbol, Close) %>% 
+              group_by(Symbol) %>% 
+              summarise(max = max(Close))
+```
+
+#### 2. Download the file tute1.csv from the book website... convert the data to time series... Construct time series plots of each of the three series... check what happens when you don’t include facet_grid().
+
+```{r}
+tute1 <- read.csv(url("http://otexts.com/fpp3/extrafiles/tute1.csv"))
+str(tute1)
+library(lubridate)
+tute1$Quarter <- ymd(tute1$Quarter)
+str(tute1)
+tute1$Quarter <- yearquarter(tute1$Quarter) #important for tsibbles, see https://otexts.com/fpp3/tsibble-objects.html
+str(tute1)
+```
+```{r}
+tute1 <- as_tsibble(tute1, index = Quarter)
+str(tute1)
+```
+
+```{r}
+autoplot(tute1, .vars = AdBudget) #works OK but doesn't give us all of the variables
+```
+
+```{r}
+ggplot(tute1) +
+  geom_line(aes(x = Quarter, y = Sales)) +
+  geom_line(aes(x = Quarter, y = AdBudget)) +
+  geom_line(aes(x = Quarter,y = GDP))
+```
+
+The y-axis above is incorrect, Really, we want to add a legend for each of these plots. In order to do this, we need a factor variable that defines each *y*.
+
+```{r}
+head(tute1)
+tute1 %>% gather("key", "Value", -Quarter) %>% ggplot(aes(x=Quarter, y = Value, color = key)) +
+  geom_line() + facet_grid(vars(key), scales= "free_y")
+```
+
+#### 3. Create time plots of the following time series: fma::bicoal, fma::chicken, fma::dole, USAccDeaths, fma::writing, fma::fancy. Use ? (or help()) to find out about the data in each series. You will need to convert each series to a tsibble using as_tsibble().
+
+We'll handle each dataset independently from start to finish.
+
+```{r}
+library(fma)
+?bicoal #Annual
+autoplot(bicoal) #no tsibble necessary
+```
+
+```{r}
+?chicken
+str(chicken)
+autoplot(chicken)
+```
+```{r}
+?dole
+autoplot(dole)
+```
+```{r}
+?USAccDeaths
+autoplot(USAccDeaths)
+```
+
+Remember that autoplot is a function from ggplot. It seems to work here without conversion to tsibble, so why bother?
+
+```{r}
+autoplot(writing)
+autoplot(fancy)
+```
+
+#### 4. Use the gg_season() and gg_subseries() functions to explore the seasonal patterns in the following time series: fma::writing, fma::fancy, PBS for ATC2 “A10” and “H02”. What can you say about the seasonal patterns? Can you identify any unusual years?
+
+We'll go through each from start to finish.
+
+```{r}
+autoplot(writing) #ok weird dip... not quite to zero
+writing
+str(writing) #monthly from 68 to 78... assuming it starts in 1/1/68 and ends in 12/1/77
+class(writing)
+start(writing)
+end(writing)
+monthyear <- seq(from = as.Date("1968-01-01"), to = as.Date("1977-12-01"), by = "1 month")
+writing <- as_tsibble(writing, index = yearmonth(monthyear))
+gg_season(writing) #woah for whatever reason August is missing, let's try this again
+gg_subseries(writing)
+```
+
+August. Increasing trend. Some cyclicality.
+
+```{r}
+fancy #1/87 to 12/93
+str(fancy)
+fancy <- as_tsibble(fancy, index = yearmonth(fancy)) #index and dataset are the same
+str(fancy)
+gg_season(fancy)
+gg_subseries(fancy)
+```
+
+Increasing trend. (Colors on gg_season are misleading, as 1987 and 1994 are the same.) Seasonality.
