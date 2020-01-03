@@ -1,0 +1,188 @@
+---
+title: "Chapter 3- The Forecaster's Toolbox"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(fpp3)
+```
+
+#### 3.1 A Tidy Forecasting Workflow
+
+[![Image name](https://otexts.com/fpp3/fpp_files/figure-html/workflow-1.png)
+
+Prep the data (check for missing values, order, etc.)
+Visualize the data
+Select a model- there are many to choose from.
+
+"When forecasting from a model with transformations, the appropriate back-transformation will be applied to ensure forecasts are on the correct scale."
+
+You can fit one or more model specifications using the model() function. 
+
+Your output will be a model table or mable.
+
+Then, evalute with diagnostics.
+
+Finally, you can produce forecasts using forecast() and h = number of forecasts. This can be put out as a fable- that is, a table of forecasts.
+
+```{r}
+fit <- global_economy %>%
+  model(trend_model = TSLM(GDP ~ trend()))
+```
+
+```{r}
+fit %>% forecast(h = "3 years") %>%
+  filter(Country=="Sweden") %>%
+  autoplot(global_economy) +
+    ggtitle("GDP for Sweden") + ylab("$US billions")
+```
+
+#### 3.2 Some Simple Forecasting Methods
+
+Use filter_index() in a dplyr pipeline to select a time period.
+
+```{r}
+bricks <- aus_production %>% filter_index(1970 ~ 2004)
+```
+
+Here are four different simple forecasting methods.
+
+##### The Average
+
+```{r}
+bricks %>% model(MEAN(Bricks)) %>% forecast(h = 3) %>% autoplot(bricks)
+```
+
+##### Naive
+
+Last observation. "Because a naïve forecast is optimal when data follow a random walk (see Section 9.1), these are also called random walk forecasts."
+
+```{r}
+bricks %>% model(NAIVE(Bricks)) %>% forecast(h = 3) %>% autoplot(bricks)
+```
+
+##### Seasonal Naive
+
+We set each forecast to be equal to the last observed value from the same season of the pervious year. You can see that Q2 of 2004 matches Q2 of 2003
+
+```{r}
+bricks %>% select(Bricks) %>% filter_index('2003 Q2' ~ '2003 Q4')
+bricks %>% model(SNAIVE(Bricks~lag("year")))  %>% forecast(h = 3)
+```
+
+##### The Drift Method
+
+Is like a linear regression on the data. 
+
+```{r}
+bricks %>% filter_index(1970 ~ 1990) %>% model(RW(Bricks ~ drift())) %>% forecast(h=30) %>% autoplot(bricks)
+```
+
+##### Example: Google Stock Price
+
+This is a good example because it first removes weekends, creates an initial model with multiple forecasts (google_fit), plots a forecast for 2016 Jan, and verifies against the actual data.
+
+These models are often used as baselines. If your more complicated model can do better, then that's a good thing.
+
+```{r}
+# Re-index based on trading days
+google_stock <- gafa_stock %>%
+  filter(Symbol == "GOOG") %>%
+  mutate(day = row_number()) %>%
+  update_tsibble(index = day, regular = TRUE)
+# Filter the year of interest
+google_2015 <- google_stock %>% filter(year(Date) == 2015)
+# Fit the models
+google_fit <- google_2015 %>%
+  model(
+    Mean = MEAN(Close),
+    `Naïve` = NAIVE(Close),
+    Drift = NAIVE(Close ~ drift())
+  )
+# Produce forecasts for the 19 trading days in January 2015
+google_fc <- google_fit %>% forecast(h = 19)
+# A better way using a tsibble to determine the forecast horizons
+google_jan_2016 <- google_stock %>%
+  filter(yearmonth(Date) == yearmonth("2016 Jan"))
+google_fc <- google_fit %>% forecast(google_jan_2016)
+# Plot the forecasts
+google_fc %>%
+  autoplot(google_2015, level = NULL) +
+    autolayer(google_jan_2016, Close, color='black') +
+    ggtitle("Google stock (daily ending 31 Dec 2015)") +
+    xlab("Day") + ylab("Closing Price (US$)") +
+    guides(colour=guide_legend(title="Forecast"))
+```
+
+Note the use of autolayer() to add forecast layers via grammar of graphics.
+
+#### 3.3 Transformations and Adjustments
+
+calendar adjustments, population adjustments, inflation adjustments and mathematical transformations... simpler patterns can increase accuracy.
+
+The first 3 are adjustments- basically, statistical controls using ratios.
+
+Calendar adjustments: for monthly sales, some months have more days than other. Averaging daily sales in each month removes this variation. 
+
+Population adjustments: If the data is effected by populations changes, then take the ratio for the population. This includes GDP. Better to look at GDP per capita.
+
+Inflation adjustments: Index data over time, ex. real GDP. 
+
+TRANSFORMATIONS
+
+Logs and Power Transformations.
+
+Logs: "Logarithms are useful because they are interpretable: changes in a log value are relative (or percentage) changes on the original scale. So if log base 10 is used, then an increase of 1 on the log scale corresponds to a multiplication of 10 on the original scale."
+
+Power: $w_t = y^p_t$. Square root, cubic, etc.
+
+Box-Cox depend on $\lambda$. If $\lambda$ = 0, then $w_t = ln(y_t)$. Otherwise, $(y^\lambda_t - 1)/\lambda$.  In essense, a log transformation is box-cox = 0.
+
+Basically, with seasonal data, it will make some periods of the series less variable than other periods.
+
+'A good value of λ is one which makes the size of the seasonal variation about the same across the whole series, as that makes the forecasting model simpler.'
+
+```{r}
+lambda <- aus_production %>%
+  features(Gas, features = guerrero) %>%
+  pull(lambda_guerrero)
+aus_production %>% autoplot(box_cox(Gas, lambda))
+```
+
+The fable package automaticaly back-transforms the forecasts.
+
+Reminders:
+if $y_t$ is < 0, add a constant prior to transformation.
+Choose a simple value of $\lambda$
+Often no transformation is needed
+point forecasts can be insensitive to $\lambda$, but CI's are
+
+Cominations of transformations
+log(x+1) for count data
+scaled logit to keep the data within an interval: log[(x-a)/(b-x)] between and b. This can be back-transformed (see book). 
+
+Backt ransforming gives you the median point forecast, not the mean. This doesn't matter for symmetrical distributions, but if you want to add up multiple subforecasts, you need to add their means. The formula for the back-transformed mean is in this section. You can add bias_adjust = FALSE to the forecast() function to correct this.
+
+#### 3.4 Fitted Values and Residuals
+
+Fitted Values: "Each observation in a time series can be forecast using all previous observations." Technically fitted values are not forecasts because they include future values in their estimation.
+
+Residuals carry their standard definition.
+
+Using the function augment() will create a table of fitted values and residuals for all forecasts.
+
+Residuals and fitted values are used in constructing future models.
+
+You want your residuals to be iid: independent (uncorrelated), identically distributed (normal distribution, constant variance)
+
+#### 3.5 Prediction Intervals
+
+Usual interpretation here. We use $\sigma_h$ for the variance, and for one-step forecasts, use  the variance of the residuals. Multi-step forecasts are more complicated and assume uncorrelated residuals.
+
+You can calculate the sd for benchmark forecasts. Use hilo() to calculate the prediction interval.
+
+If the normal distribution of residuals is unreasonable, you can bootstrap your standard errors using bootstrap = TRUE in your forecast() function with the times argument.
+
+"If a transformation has been used, then the prediction interval should be computed on the transformed scale, and the end points back-transformed to give a prediction interval on the original scale." 
