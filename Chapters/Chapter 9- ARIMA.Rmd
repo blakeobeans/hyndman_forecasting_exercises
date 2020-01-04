@@ -1,31 +1,148 @@
 ---
 title: "Chapter 9- ARIMA"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
 ---
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 library(fpp3)
 ```
 
 ### [9.1 Stationarity and Differencing](https://otexts.com/fpp3/stationarity.html)
 
-A stationary time series is one whose properties do not depend on the time at which the series is observed. More precisely, if $y_t$ is a stationary time series, then for all *s* the distribution of ($y_t$,...,$y_{t+s}$) does not depend on *t*.
+A **stationary time series** is one whose properties do not depend on the time at which the series is observed. More precisely, if $y_t$ is a stationary time series, then for all *s* the distribution of ($y_t$,...,$y_{t+s}$) does not depend on *t*.
 
-This means that a time series can still have cyclical patterns. It's just that those patterns aren't a function of *t*.
+A time series can still have cyclical patterns. It's just that those patterns aren't a function of *t*.
+
+#### Differencing
+
+**Differencing** is a method of making non-stationary data stationary. Differencing reduces or eliminates trends and seasonality. While transformations and adjustments affect the variance, differencing affects the means. 
+
+The differenced y values are a "random walk" model where $y_t$ = $y_{t-1}$ + $\epsilon_t$. Random walks have long periods of up or down and sudden and unpredictible changes in direction. Random walks have naive forecasts. There can also be a *c* in there.
 
 ```{r}
-#google_2015 created in section 3.2
-google_stock <- gafa_stock %>%
+google_2015 <- gafa_stock %>%
   filter(Symbol == "GOOG") %>%
   mutate(day = row_number()) %>%
-  update_tsibble(index = day, regular = TRUE)
+  update_tsibble(index = day, regular = TRUE) %>% 
+  filter(year(Date) == 2015)
 
-google_2015 <- google_stock %>% filter(year(Date) == 2015)
+google_2015 %>% 
+  mutate(diff_close = difference(Close)) 
 ```
 
+The Ljung-Box Q* statistic can measure the correlation in a series. If P > .05, then the data is considered random.
 
 ```{r}
-google_2015 <- google_2015 %>% mutate(diff_close = difference(Close)) 
+google_2015 <- google_2015 %>% 
+  mutate(diff_close = difference(Close)) 
+
 ljung_box(google_2015$diff_close, lag = 10)
 ```
 
+
+If the data does not seem stationary (check an ACF plot) then do second-order differencing. The model would measure the change in the changes. Going beyond second order differencing is rare.
+
+```{r}
+google_2015 %>% 
+  mutate(second_order_diff = difference(difference(Close)))
+```
+
+#### Seasonal Differencing
+
+Seasonal differencing takes the difference between an observation and the previous observation in the same season. It takes the seasonality out of the data. Seasonal differences are the change between one year to the next.
+
+Sometimes it is necessary to take both first order and seasonal differences. The goal is to get stationary data. Generally, take seasonal differences first because you may not need first order after that.
+
+Note that the seasonal difference comes first and is differenced with a seasonal lag.
+
+```{r}
+PBS %>%
+  filter(ATC2 == "H02") %>%
+  summarise(Cost = sum(Cost)/1e6) %>%
+  transmute(
+    `Sales ($million)` = Cost,
+    `Log sales` = log(Cost),
+    `Annual change in log sales` = difference(log(Cost), 12),
+    `Doubly differenced log sales` = difference(difference(log(Cost), lag = 12), 1)
+  ) %>%
+  gather("Type", "Sales", !!!syms(measured_vars(.)), factor_key = TRUE) %>%
+  ggplot(aes(x = Month, y = Sales)) +
+  geom_line() +
+  facet_grid(vars(Type), scales = "free_y") +
+  labs(title = "Corticosteroid drug sales", x = "Year", y = NULL)
+```
+
+#### Unit root tests
+
+Unit root tests will tell you whether differenging is required.
+
+The *KPSS* test tests the null hypothesis that the data is stationary. Use the urca package.
+
+```{r}
+temp <- google_2015 %>%
+  mutate(diff_close = difference(Close))
+unitroot_kpss(temp$Close)
+unitroot_kpss(temp$diff_close)
+```
+
+You can use unitroot_nsdiffs() for the number of seasonal differences and unitroot_ndiffs() for the number of ordered differences. In the example below, one of both is required to achieve stationarity.
+
+```{r}
+aus_total_retail <- aus_retail %>%
+  summarise(Turnover = sum(Turnover))
+
+aus_total_retail %>%
+  mutate(log_turnover = log(Turnover)) %>%
+  features(log_turnover, unitroot_nsdiffs)
+
+aus_total_retail %>%
+  mutate(log_turnover = difference(log(Turnover), 12)) %>%
+  features(log_turnover, unitroot_ndiffs)
+```
+
+### [9.2 Backshift Notation](https://otexts.com/fpp3/backshift.html)
+
+Backshift notation is a way to abbreviate various differences or lags in the data.
+
+B$y_t$=$y_{t-1}$ shifts the data back one period.
+(1-B)$y_t$ is a first order difference.
+(1-$B^m$)$y_t$ is a seasonal difference.
+
+### [9.3 Autoregressive Models](https://otexts.com/fpp3/AR.html)
+
+"In a multiple regression model, we forecast the variable of interest using a linear combination of predictors. In an autoregression model, we forecast the variable of interest using a linear combination of past values of the variable. The term autoregression indicates that it is a regression of the variable against itself."
+
+$y_t$= c + $\phi_1y_{t-1}$+ $\phi_2y_{t-2}$+...+$\phi_py_{t-p}$ + $\epsilon_t$ 
+
+where $\epsilon_t$ is white noise, but like OLS is normally distributed with mean 0 and variance 1.
+
+c is the intercept.
+
+AR(p) models include p periods or p variables, that is, one lag, or two or three?
+
+Autoregressive models are normally restricted to stationary data.
+
+When $\phi_1$ = 0, $y_t$ is white noise.
+When $\phi_1$ = 1 and c = 0, $y_t$ is a random walk.
+When $\phi_1$ =1 and c != 0, $y_t$ is a random walk with drift.
+When $\phi_1$<0, $y_t$ oscillates around the mean.
+
+### [9.4 Moving Average (MA) Models](https://otexts.com/fpp3/MA.html)
+
+Rather than using past values of the forecast variable in a regression, a moving average model uses past forecast errors in a regression-like model.
+
+$y_t$ = c + $\epsilon_t$ + $\theta_1\epsilon_{t-1}$ + $\theta_2\epsilon_{t-2}$ + ... + $\theta_q\epsilon_{t-q}$ 
+
+again $\epsilon_{t}$ is white noise. MA(q) where q is the order. 
+
+This is confusing. I guess that the way it works is that it makes an autoregressive forecast for p = q, measures the errors for each t, then does a regression on those. But p doesn't have to equal q.
+
+### [9.5 Non-seasonal ARIMA models](https://otexts.com/fpp3/non-seasonal-arima.html)
+
+Finally, ARIMA models. Shit.
+
+ARIMA(p, d, q) where p = order, d = degree of differencing, q = order of moving average.
